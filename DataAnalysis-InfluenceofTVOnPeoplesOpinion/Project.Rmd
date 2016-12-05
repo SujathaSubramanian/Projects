@@ -1,0 +1,281 @@
+---
+title: "Project Analysis"
+
+output: html_document
+---
+
+
+##Synopsis
+
+The influence of television on society is getting stronger and stronger as technology advances.The media has a huge impact on society and also in public opinion. They can shape the public opinion in different ways depending of what is the objective.For example, after the attacks of 911 the media gave a huge coverage of the event and exposed Osama guilty for the attack as they were told by the authorities. This shaped the public opinion to support the war on terrorism, the same happened with the war on Iraq. The problem is that if media received inaccurate information then the public opinion supported a wrong cause, this is the power of public opinion influence.
+
+The American public's views on military spending have been varied over the last several years. Americans were most likely to view spending as too high during Vietnam War and the 1980s and early '90s, and most likely to view it as too little after the drop in spending in the 1970s and 1990s.Now, as the U.S. begins once again to decrease military spending, the public's opinion are divided.
+
+Articles like "Pentagon Spending Billions on PR to Sway World Opinion" mentioned in [Fox News](http://www.foxnews.com/politics/2009/02/05/pentagon-spending-billions-pr-sway-world-opinion/) suggests that television does play an influential role.
+
+In this study, i am trying to find if there is a relationship between a respondent's opinion on money spent on **MILITARY, ARMAMENTS, AND DEFENSE** and the amount of hours the respondent watches **Television** everyday. 
+
+####Pentagon Spending Billions on PR via Television, to Sway World Opinion. Does it Work? Do people form opinions just by what they see on Television? Is there a need to have a balanced view of ground realities?
+
+
+
+###Data Collection and Type of Study
+
+For the purpose of this study , i have taken the data from the General Social Survey(GSS). The GSS contains a standard 'core' of demographic, behavioral, and attitudinal questions, plus topics of special interest. Many of the core questions have remained unchanged since 1972 to facilitate time-trend studies as well as replication of earlier findings. The GSS takes the pulse of America, and is a unique and valuable resource. It has tracked the opinions of Americans over the last four decades.General Social Survey (GSS): A sociological survey used to collect data on demographic characteristics and attitudes of residents of the United States. The [Codebook] (https://d396qusza40orc.cloudfront.net/statistics%2Fproject%2Fgss1.html)mentioned here , lists all variables, the values they take, and the survey questions associated with them. 
+
+There are a total of 57,061 observational units in this study. Each unit is a repondant who has been randomly chosen to take part in the GSS survey each year. Each case/observational unit has 114 variables in this dataset. Note that this is a cumulative data file for surveys conducted between 1972 - 2012. Also not all respondents answered all questions in all years.For the purpose of this study, i am taking data for the year 4 year period of each Government.
+
+The two variables considered for the Study, are **"natarms""**, which is a Categorical variable and **"TVHours"** which is a **numerical variable**.
+In the Survey , people are asked to rate their opinion on government's money spent towards **MILITARY, ARMAMENTS, AND DEFENSE**. And the response can be either "Too Much","About Right" , "Too Little" or nothing. This is recorded in natarms a **Categorical Variable**.
+In the Survey , people are asked to enter the number of hours spent watching TV each day. And the response is recorded in TVHours a **Numerical Variable**.
+
+This is a **Retrospective Observational Study**, as the survey is conducted in the past and data collected from the survey is used for the analysis.
+
+**The Scope of Inference** refers to the population to which Inference can be reasonably drawn based on the study. Since this study is based on the data from General Social Survey(GSS), the sample data is random and independant. Any inference from the sample can be applied to the general population with reasonable confidence and a certain Margin Of Error.
+
+This is also an **Observational study and not an Experimental study**. In the study, we are trying to see if the opinion of people on money spent for defense has any co-relation with the amount of time they spend watching TV. But the **co-relation if any ,does not imply Causation**. For example , we can not conclude that TV Watching, causes the change in opinion regarding money spent on defense . There could be other confounding parameters like, current economic conditions,terror attacks in the recent timeline,presidential elections,budgets,war with other nations etc.
+
+
+##Exploratory Data Analysis
+
+Looking at all the data in the GSS survey from  1972-2012, we are trying to analyze the numerical data(tvhours) through their quartiles for the 3 categories "Too Little","About Right" and " Too Much" 
+
+
+```{r}
+library(plyr)
+library(ggplot2) 
+library(reshape)  
+load(url("http://bit.ly/dasi_gss_data"))
+source("http://bit.ly/dasi_inference")
+gss_clean <- gss[!is.na(gss$tvhours) & !is.na(gss$natarms),]
+gss_clean$group <- as.integer((gss_clean$year-1970)/10)
+gss_clean[gss_clean$group==0,"TimePeriod"] <- "1970 - 1979"
+gss_clean[gss_clean$group==1,"TimePeriod"] <- "1980 - 1989"
+gss_clean[gss_clean$group==2,"TimePeriod"] <- "1990 - 1999"
+gss_clean[gss_clean$group==3,"TimePeriod"] <- "2000 - 2009"
+gss_clean[gss_clean$group==4,"TimePeriod"] <- "2010 onwards"
+
+boxplot(tvhours~natarms,data = gss_clean,col="blue",main = "Opinion on Military Spend Vs Hours Watching TV",
+        xlab="Opinion on Military Spend",ylab="Hours Spent Watching TV")
+
+```
+
+The boxplot shows that , there is a difference in Median across 3 categories i.e People with Opinion that Military Spend as "Too Little" have higher Median TV Watching time compared to  People with Opinion that Military Spend as "About Right" or "Too Much"
+
+
+```{r}
+YearwiseOpinion <- ddply(gss_clean,.(TimePeriod,year,natarms), nrow)
+YearwiseTVHours <- ddply(gss_clean,.(TimePeriod,year,natarms), summarize,median = median(tvhours,na.rm=T))
+YearwiseSummary <- cbind(YearwiseOpinion,median=YearwiseTVHours$median)
+
+```
+Looking at all the data in the GSS survey from  1972-2012, we are trying to analyze the numerical data(tvhours) and categorical data (natarms) for each decade.This is done to see if there is any pattern emerging in each decade.
+
+```{r}
+DecadewiseMedianTVHours <- ddply(gss_clean,.(TimePeriod,natarms), summarize,median = median(tvhours,na.rm=T))
+DecadewiseMedianTVHours
+barplot(DecadewiseMedianTVHours$median,names.arg = DecadewiseMedianTVHours$TimePeriod,col=DecadewiseMedianTVHours$natarms,legend.text = c("Too Little","About Right","Too Much"),xlab="Time Period",ylab="Median Hours Watching TV",main = "Opinion of Military Spend Vs Hours Watching TV")
+
+qplot(year,median,data=YearwiseSummary,xlab="Year(1972-2012)",ylab="Median Hours Watching TV",facets = .~natarms,main= "Opinion on Military Spend",size = TimePeriod,color=TimePeriod)
+
+
+``` 
+
+In the above two plots we can see that , people spending about 3 hours watching TV tend to have an opinion that **money spent on MILITARY, ARMAMENTS, AND DEFENSE is Too Little.
+And on the contrary,people spending only about 2 hours watching TV tend to have an opinion that money spent on MILITARY, ARMAMENTS, AND DEFENSE is Too Much or About Right**.
+
+This pattern is almost consistent even when looked at the data in each decade.
+
+## Inference
+In statistics terminology, the respondants in the study are the sample and the larger group they represent is called the population. Given that the sample of respondants in the study are representative of a larger population of American Residents, we can use hypothesis testing to understand whether any differences or co-relation discovered in the study exist in the population. In layman's terms, hypothesis testing is used to establish whether a research hypothesis extends beyond those individuals examined in a single study.
+
+###Hypothesis Testing
+
+**The Null Hypothesis for this analysis states that the average hours spent watching TV by the respondants, has no impact on their Opinion regarding money spent on  MILITARY, ARMAMENTS, AND DEFENSE i.e H_0 - All means are equal?**
+
+**The Alternate Hypothesis for this analysis states that the average hours spent watching TV by the respondants, has impact on their Opinion regarding money spent on MILITARY, ARMAMENTS, AND DEFENSE i.e H_A - Alteast one mean is different**
+
+
+```{r}
+NatArmTooMuch=gss_clean[gss_clean$natarms=="Too Much",]
+#shapiro.test(gss2012TM)
+
+qqnorm(NatArmTooMuch$tvhours)
+qqline(NatArmTooMuch$tvhours)
+
+
+NatArmTooLittle=gss_clean[gss_clean$natarms=="Too Little",]
+View(unique(NatArmTooMuch$tvhours))
+
+qqnorm(NatArmTooLittle$tvhours)
+qqline(NatArmTooLittle$tvhours)
+
+NatArmAboutRight=gss_clean[gss_clean$natarms=="About Right",]
+
+qqnorm(NatArmAboutRight$tvhours)
+qqline(NatArmAboutRight$tvhours)
+boxplot(tvhours ~natarms ,data = gss_clean,xlab = "Opinion on Military Spend",ylab="TV Hours")
+
+summaryData <- cbind(n=by(gss_clean$tvhours,gss_clean$natarms, length))
+summaryData <- cbind(summaryData,mean=by(gss_clean$tvhours,gss_clean$natarms, mean))
+summaryData <- cbind(summaryData,sd=by(gss_clean$tvhours,gss_clean$natarms, sd))
+summaryData
+
+```
+
+In order to apply ANOVA certain conditions have to be met. One of that is independence.GSS selects the participants randomly and hence random sampling condition can be assumed to be met.We can also assume that one respondant's opinion and their tv watching habits is independent of another respondant. This survey also has less than 10% of the overall population.
+
+Above normal probabilty plots show that data is not normal. We are still proceeding with the ANOVA for finding any co-relation as the sample size is large in each of the cases. Also, we will be analyzing the data using Kruskal-Wallis test.Kruskal- Wallis test does not require the data to be normally distributed.
+
+Last condition is variability should be consistent across groups.Based on the box plot and summary data it seems like the variability is consistent across all the groups.
+
+Overall, to apply ANOVA one of the condition(normality in data within groups)is not met. But considering that the sample size is large enough we are proceding with ANOVA but with caution.
+
+```{r echo=FALSE}
+inference(y=gss_clean$tvhours,x=gss_clean$natarms,est="mean",type="ht",alternative="greater",method="theoretical")
+
+tvhoursMean <- mean(gss_clean$tvhours)
+m <- nrow(summaryData)
+n <- nrow(gss_clean)
+
+SST <- sum((gss_clean$tvhours - tvhoursMean)^ 2)
+
+NatArmTooMuchMean <- mean(NatArmTooMuch$tvhours)
+SSW1 <- sum((NatArmTooMuch$tvhours - NatArmTooMuchMean)^ 2)
+NatArmTooMuchCount <- nrow(NatArmTooMuch)
+
+NatArmTooLittleMean <- mean(NatArmTooLittle$tvhours)
+SSW2 <- sum((NatArmTooLittle$tvhours - NatArmTooLittleMean)^ 2)
+NatArmTooLittleCount <- nrow(NatArmTooLittle)
+
+NatArmAboutRightMean <- mean(NatArmAboutRight$tvhours)
+SSW3 <- sum((NatArmAboutRight$tvhours - NatArmAboutRightMean)^ 2)
+NatArmAboutRightCount <- nrow(NatArmAboutRight)
+
+SSW <- SSW1 + SSW2 + SSW3
+
+SSB <- NatArmTooMuchCount * ((NatArmTooMuchMean - tvhoursMean )^ 2) +
+  NatArmTooLittleCount * ((NatArmTooLittleMean -tvhoursMean )^ 2)+
+  NatArmAboutRightCount * ((NatArmAboutRightMean -tvhoursMean )^ 2)
+
+FStatistic <- (SSB / (m-1)) /(SSW / ( n-m))
+
+
+pf(FStatistic,m-1,n-m,lower.tail=FALSE)
+gss_clean.lm = lm(tvhours~natarms, data=gss_clean) 
+anv <- anova(gss_clean.lm)
+MSE <- anv[2,'Mean Sq']
+DF <- anv[2,'Df']
+
+anv
+Alpha <- 0.05
+NewAlpha <- Alpha /((m * (m - 1)) /2)
+```
+
+Based on the **ANOVA output, we find P- Value is 1.494e-06** which is a very small value.Because the P-Value is a very small value **null hypothesis is rejected** and we proceed with alternate hypothesis i.e atleast one pair of population mean are different.
+
+Further Analsyis is done using the pair-wise testing between groups.
+
+
+```{r echo = FALSE}
+
+#Comparing two pairs - i.e There is no difference in TV watching pattern between groups that say
+#spending "Too Much" or "About Right" in arms.
+#H0 - Mean(Too Much) - Mean(About Right)  = 0
+#HA - Mean(Too Much) - Mean(About Right)  != 0
+
+TStatisticError1 <- sqrt((MSE/NatArmTooMuchCount) + (MSE/NatArmAboutRightCount))
+TStatisticTMVsAR = abs(NatArmTooMuchMean - NatArmAboutRightMean)/TStatisticError1
+PValue1 <- 2*pt(TStatisticTMVsAR,DF,lower.tail=FALSE)
+
+PValue1Output <- 'Rejecting null hypothesis. Average hours of watching TV is different for people with different opinion on military spend.Opinion under consideration are Too Much and About Right'
+
+if (PValue1 > NewAlpha)
+  print('Fail to reject null hypothesis. Average hours of watching TV is same for people with different opinion on military spend.Opinion under consideration are **Too Much** and **About Right**')
+
+PValue1Output
+
+#Comparing two pairs - i.e There is no difference in TV watching pattern between groups that say
+#spending "Too Much" or "Too Little" in arms.
+#H0 - Mean(Too Much) - Mean(Too Little)  = 0
+#HA - Mean(Too Much) - Mean(Too Little)  != 0
+TStatisticError2 <- sqrt((MSE/NatArmTooMuchCount) + (MSE/NatArmTooLittleCount))
+TStatisticTMVsTL = abs(NatArmTooMuchMean - NatArmTooLittleMean)/TStatisticError2
+
+
+PValue2 <- 2*pt(TStatisticTMVsTL,DF,lower.tail=FALSE)
+PValue2Output <- 'Rejecting null hypothesis. Average hours of watching TV is different for people with different opinion on military spend..Opinion under consideration ares **Too Much** and **Too Little**'
+
+if (PValue2 > NewAlpha)
+  print('Fail to reject null hypothesis. Average hours of watching TV is same for people with different opinion on military spend.Opinion under consideration are "Too Much" and "Too Little"')
+
+
+PValue2Output
+#Comparing two pairs - i.e There is no difference in TV watching pattern between groups that say
+#spending "Too Much" or "Too Little" in arms.
+#H0 - Mean(About Right) - Mean(Too Little)  = 0
+#HA - Mean(About Right) - Mean(Too Little)  != 0
+TStatisticError3 <- sqrt((MSE/NatArmAboutRightCount) + (MSE/NatArmTooLittleCount))
+TStatisticARVsTL = abs(NatArmAboutRightMean - NatArmTooLittleMean)/TStatisticError3
+
+
+PValue3 <- 2*pt(TStatisticARVsTL,DF,lower.tail=FALSE)
+PValue3Output <- 'Rejecting null hypothesis. Average hours of watching TV is different for people with different opinion on military spend..Opinion under consideration are **About Right ** and **Too Little**'
+
+if(PValue3 > NewAlpha)
+    print('Fail to reject null hypothesis. Average hours of watching TV is same for people with different opinion on military spend.Opinion under consideration are "About Right" and "Too Little"')
+PValue3Output
+
+```
+
+
+Looking at the pairwise t tests output, we can infer the following
+
+a) People with opinion as Too Much and People with opinion as About Right have difference in average TV watching hours
+i.e P-Value after doing t test for this pair is .0035
+
+b) People with opinion as Too Much and People with opinion as Too Little have difference in average TV watching hours
+i.e P-Value after doing t test for this pair is .00000
+
+a) People with opinion as About Right  and People with opinion as Too Little have difference in average TV watching hours
+i.e P-Value after doing t test for this pair is .0055
+
+Other way to analyze the data,since in this case the data is not normally distributed is Kruskal Wallis test. Since it is a non-parametric method, the Kruskal-Wallis test does not assume a normal distribution of the residuals, unlike the analogous one-way analysis of variance ANOVA.
+
+
+```{r }
+
+kruskal.test(gss_clean$tvhours,gss_clean$natarms,data=gss_clean)
+
+```
+
+P-Value from the Kruskal-Wallis test turns out to be nearly zero. Hence at .05 significance level, we reject the null hypothesis. We can conclude that the average hours spent watching TV is different in each of groups with different opinion.
+
+
+#Conclusion
+
+Based on the output from ANOVA and from the Kruskal-Wallis test, we can find that the average hours spent watching TV by the general population, is most likely to impact their Opinion regarding money spent on MILITARY, ARMAMENTS, AND DEFENSE
+
+Since the data is not normally distributed the output from ANOVA cannot be considered without caution and further analysis. But output from Kruskal-Wallis test does indicate that there is a strong co-relation between the two parameters considered in this study.
+
+The influence of television on society is quite high. This analysis suggests that, the people spending more hours watching TV tend to have a different opinion on money spent on MILITARY, ARMAMENTS, AND DEFENSE than the people watching TV less hours of TV.
+
+One of the possible ideas for future research would be, cleaning the data and making it nearly normal. Once the data is nearly normally distributed,the ANOVA output can be used for finding the co-relation with higher confidence level and lower margin of error. 
+
+
+#Reference
+
+[General Social Survey] (http://www3.norc.org/GSS+Website/)
+
+[Mass Media Influence on Society] (http://rayuso.hubpages.com/hub/Mass-Media-Influence-on-Society)
+
+[Media influence] (http://en.wikipedia.org/wiki/Media_influence)
+
+[Americans Remain Divided on Military Spending] (http://www.gallup.com/poll/167648/americans-remain-divided-military-spending.aspx)
+
+
+
+
+
+
+

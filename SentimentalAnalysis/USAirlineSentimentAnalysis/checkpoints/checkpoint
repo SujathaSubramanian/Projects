@@ -1,0 +1,2 @@
+model_checkpoint_path: "twitter_sentiment.ckpt"
+all_model_checkpoint_paths: "twitter_sentiment.ckpt"
